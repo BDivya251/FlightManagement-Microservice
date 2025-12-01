@@ -15,6 +15,8 @@ import com.book.entity.FlightInventory;
 import com.book.feign.FlightClient;
 import com.book.repository.BookingRepository;
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+
 @Service
 
 public class BookingService {
@@ -22,6 +24,7 @@ public class BookingService {
 	private BookingRepository bookingRepository;
 	@Autowired
 	private FlightClient flightClient;
+	@CircuitBreaker(name="flight-service",fallbackMethod="flightServerFallBack")
 	public UUID saveBooking(BookingWrapper bookingWrapper) {
 		FlightInventory flight = flightClient.getInventoryById(bookingWrapper.getFlightId());
 		if(flight==null) {
@@ -39,7 +42,9 @@ public class BookingService {
 		Booking b=bookingRepository.save(book);
 		return b.getPnr();
 		}
-	
+	public UUID flightServerFallBack(BookingWrapper bookingWrapper,Throwable ex) {
+		return null;
+	}
 	public Booking getBooking(UUID pnr){
 		return bookingRepository.findById(pnr).get();
 	}
