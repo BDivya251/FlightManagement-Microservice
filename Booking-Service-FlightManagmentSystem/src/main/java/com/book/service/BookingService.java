@@ -45,7 +45,7 @@ public class BookingService {
 	private PassengerRepository passengerRepository;
 	@Autowired
 	private Converters converters;
-	@CircuitBreaker(name = "flight-service", fallbackMethod = "flightServerFallBack")
+//	@CircuitBreaker(name = "flight-service", fallbackMethod = "flightServerFallBack")
 	public String saveBooking(BookingWrapper bookingWrapper) throws SeatsNotAvailableException, NoEnoughSeatNumbers {
 //		Optional<FlightInventory> flightOptional = Optional.ofNullable(flightClient.getInventoryById(bookingWrapper.getFlightId()));
 //		if (!flightOptional.isPresent()) {
@@ -55,12 +55,16 @@ public class BookingService {
 		System.out.println("Calling Flight Service...");
 
 		try {
-		    flight = flightClient.getInventoryById(bookingWrapper.getFlightId());
+			System.out.println(bookingWrapper.getFlightId());
+		    flight = getFlightWithCircuitBreaker(bookingWrapper.getFlightId());
 		} catch (Exception ex) {
 		    throw new NotAValidFlightId("Flight inventory not found");
 		}
 
 //		FlightInventory flight=flightOptional.get();
+		if(bookingWrapper.getPassenger().size()!=bookingWrapper.getSeatsBooked()) {
+			throw new NoEnoughSeatNumbers("seat numbers and passenger details are not matching");
+		}
 		Booking book = new Booking();
 		LocalDate ld = LocalDate.now();
 		String pnr = UUID.randomUUID().toString();
@@ -88,19 +92,24 @@ public class BookingService {
 			Passenger psg = converters.convertToPassenger(p);
 			passengers.add(psg);
 			psg.setBooking(book);
-			passengerRepository.save(psg);
+//			passengerRepository.save(psg);
 		}
 		book.setPassengers(passengers);
 		
 		book.setStatus("Booked");
 		book.setTotalAmount(bookingWrapper.getSeatsBooked() * flight.getTicketPrice());
 		Booking b = bookingRepository.save(book);
+		passengerRepository.saveAll(passengers);
 		System.out.println(" About to get response");
 
 		BookingEmailEvent event = new BookingEmailEvent(b.getPnr(), b.getEmail(),
 				"Your booking with PNR " + b.getPnr() + " is confirmed!");
 		rabbitTemplate.convertAndSend(RabbitMQConfig.EMAIL_EXCHANGE, RabbitMQConfig.EMAIL_ROUTING_KEY, event);
 		return pnr;
+	}
+	@CircuitBreaker(name = "flight-service", fallbackMethod = "flightFallback")
+	public FlightInventory getFlightWithCircuitBreaker(Integer id) {
+	    return flightClient.getInventoryById(id);
 	}
 
 	public String flightServerFallBack(BookingWrapper bookingWrapper, Throwable ex) {

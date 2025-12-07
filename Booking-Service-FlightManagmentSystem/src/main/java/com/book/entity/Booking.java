@@ -4,6 +4,7 @@ import java.sql.Date;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -37,7 +38,7 @@ public class Booking {
 	private Float totalAmount;
 	
 //	private List<Integer> seatNumbers;
-	 @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL)
+	 @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL,fetch = FetchType.EAGER)
 	 @JsonBackReference
 	    private List<Passenger> passengers;
 
