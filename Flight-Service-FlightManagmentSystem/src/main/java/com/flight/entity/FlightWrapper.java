@@ -25,10 +25,10 @@ public class FlightWrapper {
 	private Time departureTime;
 	@NotNull(message="arrival time is required")
 	private Time arrivalTime;
-	@NotBlank(message="availableseats are required")
+	@NotNull(message="availableseats are required")
 	private Integer availableSeats;
-	@NotBlank(message="ticketprice is required")
-	private float ticketPrice;
-	@NotBlank(message="airline id of this flight is required")
+	@NotNull(message="ticketprice is required")
+	private Float ticketPrice;
+	@NotNull(message="airline id of this flight is required")
 	private Integer airline;
 }
